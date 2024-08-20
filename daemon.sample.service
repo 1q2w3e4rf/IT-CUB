@@ -1,0 +1,14 @@
+[Unit]
+Description=Itcube Bot
+After=network.target
+
+[Service]
+WorkingDirectory=/home/dmitry/IT-CUB
+Type=simple
+ExecStart=/home/dmitry/ItCubeCertsBot/.venv/bin/python main.py 
+Restart=always
+User=dmitry
+Group=dmitry
+
+[Install]
+WantedBy=multi-user.target
