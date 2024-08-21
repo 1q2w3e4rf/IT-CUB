@@ -95,6 +95,7 @@ def text(message):
         reply.add(types.InlineKeyboardButton("Мероприятия", callback_data="ol2"))
         reply.add(types.InlineKeyboardButton("Контакты", callback_data="ol3"))
         reply.add(types.InlineKeyboardButton("Условия поступления", callback_data="ol4"))
+        reply.add(types.InlineKeyboardButton("Отправить заявку", callback_data="ol5"))
         bot.send_media_group(message.chat.id, media)
         bot.send_message(message.chat.id, "Меню:", reply_markup=reply)
 
