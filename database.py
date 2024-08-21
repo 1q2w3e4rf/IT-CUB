@@ -36,3 +36,31 @@ class Db():
             cursor.execute('CREATE TABLE IF NOT EXISTS sisadmy (key INTEGER PRIMARY KEY AUTOINCREMENT, cert TEXT)')
             cursor.execute('INSERT INTO sisadmy VALUES(?, ?)', (None, cert))
             db.commit()
+
+    def toPython(self, cert):
+        with sqlite3.connect('Base.db') as db:
+            cursor = db.cursor()
+            cursor.execute('CREATE TABLE IF NOT EXISTS python (key INTEGER PRIMARY KEY AUTOINCREMENT, cert TEXT)')
+            cursor.execute('INSERT INTO python VALUES(?, ?)', (None, cert))
+            db.commit()
+
+    def toJava(self, cert):
+        with sqlite3.connect('Base.db') as db:
+            cursor = db.cursor()
+            cursor.execute('CREATE TABLE IF NOT EXISTS java (key INTEGER PRIMARY KEY AUTOINCREMENT, cert TEXT)')
+            cursor.execute('INSERT INTO java VALUES(?, ?)', (None, cert))
+            db.commit()
+    
+    def toMobile(self, cert):
+        with sqlite3.connect('Base.db') as db:
+            cursor = db.cursor()
+            cursor.execute('CREATE TABLE IF NOT EXISTS mobile (key INTEGER PRIMARY KEY AUTOINCREMENT, cert TEXT)')
+            cursor.execute('INSERT INTO mobile VALUES(?, ?)', (None, cert))
+            db.commit()
+
+    def toAlglog(self, cert):
+        with sqlite3.connect('Base.db') as db:
+            cursor = db.cursor()
+            cursor.execute('CREATE TABLE IF NOT EXISTS alglog (key INTEGER PRIMARY KEY AUTOINCREMENT, cert TEXT)')
+            cursor.execute('INSERT INTO alglog VALUES(?, ?)', (None, cert))
+            db.commit()
