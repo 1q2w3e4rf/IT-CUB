@@ -2,25 +2,40 @@ import sqlite3
 
 class Db():
         
-    def register(self, chat_id, firstname, secondname, surname, isSiud = False, certNo = None):
+    def register(self, chat_id, firstname, secondname, surname):
         with sqlite3.connect('Base.db', timeout=30) as db:
             cursor = db.cursor()
-            cursor.execute('CREATE TABLE IF NOT EXISTS users (chat_id INTEGER PRIMARY KEY, firstname TEXT, secondname TEXT, surname TEXT, isSiud BOOLEAN, certNo TEXT)')
-            cursor.execute('INSERT INTO users VALUES(?, ?, ?, ?, ?, ?)', (chat_id, firstname, secondname, surname, isSiud, certNo))
+            cursor.execute('CREATE TABLE IF NOT EXISTS users (chat_id STRING PRIMARY KEY, firstname TEXT, secondname TEXT, surname TEXT)')
+            cursor.execute('INSERT OR REPLACE INTO users VALUES(?, ?, ?, ?)', (chat_id, firstname, secondname, surname))
             db.commit()
-    
+
     def register_pupil(self, cert, firstname, secondname, surname):
         with sqlite3.connect('Base.db', timeout=30) as db:
             cursor = db.cursor()
             cursor.execute('CREATE TABLE IF NOT EXISTS pupils (cert TEXT PRIMARY KEY, firstname TEXT, secondname TEXT, surname TEXT)')
             cursor.execute('INSERT INTO pupils VALUES(?, ?, ?, ?)', (cert, firstname, secondname, surname))
             db.commit()
-
-    def get_user_data(self, chat_id):
-        with sqlite3.connect('Base.db') as db:
+    def regiser_pazents(self, firstname, secondname, surname):
+        with sqlite3.connect('Base.db', timeout=30) as db:
             cursor = db.cursor()
-            cursor.execute('SELECT * FROM users WHERE chat_id = ?', (chat_id,))
+            cursor.execute('CREATE TABLE IF NOT EXISTS pazents (nume INTEGER PRIMARY KEY AUTOINCREMENT, firstname TEXT, secondname TEXT, surname TEXT)')
+            cursor.execute('INSERT INTO pazents (firstname, secondname, surname) VALUES(?, ?, ?)', (firstname, secondname, surname))
+            db.commit()
+            cursor.execute('SELECT nume FROM pazents ORDER BY nume DESC LIMIT 1')
+            return cursor.fetchone()[0]
+    
+    def get_pupils(self,cert):
+        with sqlite3.connect('Base.db', timeout=30) as db:
+            cursor = db.cursor()
+            cursor.execute('CREATE TABLE IF NOT EXISTS pupils (cert TEXT PRIMARY KEY, firstname TEXT, secondname TEXT, surname TEXT)')
+            cursor.execute('SELECT * FROM pupils WHERE cert = ?', (cert,))
             return cursor.fetchone()
+    def get_user_data(self, chat_id):
+            with sqlite3.connect('Base.db', timeout=30) as db:
+                cursor = db.cursor()
+                cursor.execute('CREATE TABLE IF NOT EXISTS users (chat_id INTEGER PRIMARY KEY AUTOINCREMENT, firstname TEXT, secondname TEXT, surname TEXT)')
+                cursor.execute('SELECT * FROM users WHERE chat_id = ?', (chat_id,))
+                return cursor.fetchone()
 
     def toRoboty(self, cert):
         with sqlite3.connect('Base.db') as db:

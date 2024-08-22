@@ -2,4 +2,4 @@ from database import Db
  
 db = Db()
 
-db.toSisadm(123)
+db.regiser_pazents('Иван', 'Иванов', 'Иванович')
