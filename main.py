@@ -1,8 +1,59 @@
+import requests
+from bs4 import BeautifulSoup
 import telebot
+import time
 from telebot import types
 from config import TOKEN
 
+
 bot = telebot.TeleBot(TOKEN)
+
+URL = 'https://t130631.spo.obrazovanie33.ru/news/'
+
+def get_news_from_site():
+    try:
+        response = requests.get(URL)
+        response.raise_for_status()
+        time.sleep(1)
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+        news_container = soup.find('div', class_='news-list')
+        if news_container:
+            news_items = news_container.find_all('a')
+
+            news = []
+            for item in news_items:
+                title = item.text.strip()
+                link = item['href'] 
+                if link: 
+                    news.append({'title': title, 'link': f'https://t130631.spo.obrazovanie33.ru{link}'})
+
+            return news
+        else:
+            return []
+    except requests.exceptions.RequestException as e:
+        return []
+    except Exception as e:
+        return []
+
+
+def get_news_description(link):
+    try:
+        response = requests.get(link)
+        response.raise_for_status()
+        time.sleep(1)
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        p_element = soup.find('p')
+        if p_element:
+            description = p_element.text.strip()
+        else:
+            description = "Описание не найдено на этой странице."
+        return description
+    except requests.exceptions.RequestException as e:
+        return "Ошибка загрузки описания."
+    except Exception as e:
+        return "Ошибка получения описания."
 
 @bot.message_handler(commands=["start"])
 def start(message):
@@ -14,6 +65,8 @@ def start(message):
     bot.send_message(message.chat.id, "Привет! Я Telegram бот который расскажет тебе об центре образования IT Cube в Вязниках" )
     bot.send_message(message.chat.id, "Чтобы узнать о направлениях, сначала ознакомьтесь с условиями поступления", reply_markup=reply)
 
+
+        
 @bot.message_handler(content_types=["text"])
 def text(message):
     if message.text == "Условия поступления":
@@ -97,11 +150,47 @@ def text(message):
         reply.add(types.InlineKeyboardButton("Условия поступления", callback_data="ol4"))
         bot.send_media_group(message.chat.id, media)
         bot.send_message(message.chat.id, "Меню:", reply_markup=reply)
+    reply2 = types.ReplyKeyboardMarkup()
+    options = [
+            "Программирование роботов",
+            "Программирование на Python",
+            "Программирование на Java",
+            "Мобильная разработка",
+            "Алгоритмика и логика",
+            "Системное администрирование",
+        ]
+    options.sort()
+    options.append("<Меню>")
+    for option in options:
+        reply2.add(option)
+    news_list = get_news_from_site()
+    if not news_list:
+        bot.reply_to(message, "Не удалось получить новости.")
+        return
+    
+    for news_item in news_list:
+        if message.text == news_item['title']:
+            description = get_news_description(news_item['link'])
+            bot.reply_to(message, f"Ссылка: {news_item['link']}\nОписание:\n{description}", reply_markup=reply2)
+            return
+
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
     if call.data == "ol":
-        bot.send_message(call.message.chat.id, "https://t130631.spo.obrazovanie33.ru/it-kub/novosti.php")
+        news_list = get_news_from_site()
+        if not news_list:
+            bot.reply_to(call.message, "Не удалось получить новости.")
+            return
+
+        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+        for news_item in news_list:
+            if news_item['title'] != "Читать полностью": 
+                keyboard.add(telebot.types.KeyboardButton(news_item['title']))
+
+        keyboard.add(telebot.types.KeyboardButton("<Меню>"))
+
+        bot.reply_to(call.message, "Выберите новость:", reply_markup=keyboard)
     elif call.data == "ol2":
         bot.send_message(call.message.chat.id, "https://t130631.spo.obrazovanie33.ru/it-kub/meropriyatiya.php")
     elif call.data == "ol3":
