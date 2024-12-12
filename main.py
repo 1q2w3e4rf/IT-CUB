@@ -4,7 +4,7 @@ import telebot
 import time
 from telebot import types
 
-BOT_TOKEN = '6804594259:AAEu03onfNbMDd4HmS9-QvuWcOqxLfQl--I'
+BOT_TOKEN = ''
 bot = telebot.TeleBot(BOT_TOKEN)
 
 URL = 'https://t130631.spo.obrazovanie33.ru/news/'
