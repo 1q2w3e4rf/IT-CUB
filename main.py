@@ -3,12 +3,12 @@ from bs4 import BeautifulSoup
 import telebot
 import time
 from telebot import types
-from config import TOKEN
 
-
-bot = telebot.TeleBot(TOKEN)
+BOT_TOKEN = '6804594259:AAEu03onfNbMDd4HmS9-QvuWcOqxLfQl--I'
+bot = telebot.TeleBot(BOT_TOKEN)
 
 URL = 'https://t130631.spo.obrazovanie33.ru/news/'
+URL2 = "https://t130631.spo.obrazovanie33.ru/events/"
 
 def get_news_from_site():
     try:
@@ -54,6 +54,48 @@ def get_news_description(link):
         return "Ошибка загрузки описания."
     except Exception as e:
         return "Ошибка получения описания."
+
+def get_events():
+    try:
+        response = requests.get(URL2)
+        response.raise_for_status()
+        time.sleep(1)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        events = []
+        for item in soup.select('a[href^="/events/"]'):
+            title = item.text.strip()
+            link = "https://t130631.spo.obrazovanie33.ru" + item['href']
+            events.append({'title': title, 'link': link})
+        return events
+    except requests.exceptions.RequestException as e:
+        print(f"Ошибка получения событий: {e}")
+        return []
+    except Exception as e:
+        print(f"Непредвиденная ошибка при получении событий: {e}")
+        return []
+
+
+def get_event_description(link):
+    try:
+        response = requests.get(link)
+        response.raise_for_status()
+        time.sleep(1)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        description_div = soup.find('div', class_='article-body')
+        if description_div:
+            description = description_div.get_text(separator='\n', strip=True)
+            return description
+        else:
+            description_paragraphs = soup.find_all('p')
+            if description_paragraphs:
+                description = '\n'.join([p.get_text(strip=True) for p in description_paragraphs])
+                return description
+            else:
+                return "Описание не найдено на этой странице."
+    except requests.exceptions.RequestException as e:
+        return f"Ошибка загрузки описания: {e}"
+    except Exception as e:
+        return f"Ошибка получения описания: {e}"
 
 @bot.message_handler(commands=["start"])
 def start(message):
@@ -171,9 +213,21 @@ def text(message):
     for news_item in news_list:
         if message.text == news_item['title']:
             description = get_news_description(news_item['link'])
-            bot.reply_to(message, f"Ссылка: {news_item['link']}\nОписание:\n{description}", reply_markup=reply2)
+            bot.reply_to(message, f"Дополнительная информация по ссылке: {news_item['link']}\n\nОписание:\n{description}", reply_markup=reply2)
             return
-
+    events = get_events()
+    if events:
+        for event in events:
+            if message.text == event['title']:
+                description = get_event_description(event['link'])
+                if description:
+                    bot.reply_to(message, f"Дополнительная информация по ссылке: {event['link']} \n\nОписание:{description}", reply_markup=reply2)
+                else:
+                    bot.reply_to(message, "Описание не найдено.")
+                return
+    else:
+        bot.reply_to(message, "Не удалось загрузить события.")
+    
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
@@ -191,8 +245,19 @@ def callback_inline(call):
         keyboard.add(telebot.types.KeyboardButton("<Меню>"))
 
         bot.reply_to(call.message, "Выберите новость:", reply_markup=keyboard)
-    elif call.data == "ol2":
-        bot.send_message(call.message.chat.id, "https://t130631.spo.obrazovanie33.ru/it-kub/meropriyatiya.php")
+    if call.data == "ol2":
+        events = get_events()
+        if events:
+            keyboard2 = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+            for event in events:
+                if event['title'] != "Мероприятия": 
+                    keyboard2.add(telebot.types.KeyboardButton(event['title']))
+
+            keyboard2.add(telebot.types.KeyboardButton("<Меню>"))
+
+            bot.reply_to(call.message, "Выберите событие:", reply_markup=keyboard2)
+        else:
+            bot.reply_to(call.message, "Не удалось загрузить события.")
     elif call.data == "ol3":
         bot.send_message(call.message.chat.id, "Контакты:\n\ne-mail: it-cub@vztec.ru\nТелефон: 8(49233)3-09-93")
     elif call.data == "ol4":
