@@ -1,16 +1,18 @@
+
 import requests
 from bs4 import BeautifulSoup
-import telebot
 import time
-from telebot import types
+from typing import List, Dict
+import os
+from Patrigram import TelegramBot
 
-BOT_TOKEN = ''
-bot = telebot.TeleBot(BOT_TOKEN)
+BOT_TOKEN = '6804594259:AAEu03onfNbMDd4HmS9-QvuWcOqxLfQl--I'
+bot = TelegramBot(BOT_TOKEN)
 
 URL = 'https://t130631.spo.obrazovanie33.ru/news/'
 URL2 = "https://t130631.spo.obrazovanie33.ru/events/"
 
-def get_news_from_site():
+def get_news_from_site() -> List[Dict[str, str]]:
     try:
         response = requests.get(URL)
         response.raise_for_status()
@@ -32,12 +34,14 @@ def get_news_from_site():
         else:
             return []
     except requests.exceptions.RequestException as e:
+        print(f"Ошибка при получении новостей: {e}")
         return []
     except Exception as e:
+        print(f"Непредвиденная ошибка при получении новостей: {e}")
         return []
 
 
-def get_news_description(link):
+def get_news_description(link: str) -> str:
     try:
         response = requests.get(link)
         response.raise_for_status()
@@ -51,11 +55,13 @@ def get_news_description(link):
             description = "Описание не найдено на этой странице."
         return description
     except requests.exceptions.RequestException as e:
+        print(f"Ошибка загрузки описания: {e}")
         return "Ошибка загрузки описания."
     except Exception as e:
+        print(f"Ошибка получения описания: {e}")
         return "Ошибка получения описания."
 
-def get_events():
+def get_events() -> List[Dict[str, str]]:
     try:
         response = requests.get(URL2)
         response.raise_for_status()
@@ -75,7 +81,7 @@ def get_events():
         return []
 
 
-def get_event_description(link):
+def get_event_description(link: str) -> str:
     try:
         response = requests.get(link)
         response.raise_for_status()
@@ -93,26 +99,25 @@ def get_event_description(link):
             else:
                 return "Описание не найдено на этой странице."
     except requests.exceptions.RequestException as e:
+        print(f"Ошибка загрузки описания: {e}")
         return f"Ошибка загрузки описания: {e}"
     except Exception as e:
+        print(f"Ошибка получения описания: {e}")
         return f"Ошибка получения описания: {e}"
 
-@bot.message_handler(commands=["start"])
-def start(message):
-    reply = types.ReplyKeyboardMarkup()
-    reply.add("Условия поступления")
-    bot.send_photo(message.chat.id, open("KUB.jpg", "rb"))
-    IT_VIDEO = open("IT.mp4", "rb")
-    bot.send_video(message.chat.id, IT_VIDEO)
-    bot.send_message(message.chat.id, "Привет! Я Telegram бот который расскажет тебе об центре образования IT Cube в Вязниках" )
-    bot.send_message(message.chat.id, "Чтобы узнать о направлениях, сначала ознакомьтесь с условиями поступления", reply_markup=reply)
+@bot.message_command(['start'])
+def start(message: Dict, username: str, user_id: int, chat_id: int, nickname: str) -> None:
+    reply_buttons = ["Условия поступления"]
+    bot.send_photo(chat_id, "KUB.jpg")
+    bot.send_video(chat_id, "IT.mp4")
+    bot.send_message(chat_id, "Привет! Я Telegram бот который расскажет тебе об центре образования IT Cube в Вязниках" )
+    bot.send_message_with_keyboard(chat_id, "Чтобы узнать о направлениях, сначала ознакомьтесь с условиями поступления", buttons=reply_buttons)
 
 
-        
-@bot.message_handler(content_types=["text"])
-def text(message):
-    if message.text == "Условия поступления":
-        reply = types.ReplyKeyboardMarkup()
+@bot.text_handler
+def handle_text_messages(message: Dict, chat_id: int) -> None:
+    text = bot.message_text(message)
+    if text == "Условия поступления":
         options = [
             "Программирование роботов",
             "Программирование на Python",
@@ -123,77 +128,91 @@ def text(message):
         ]
         options.sort()
         options.append("<Меню>")
-        for option in options:
-            reply.add(option)
-        
-        bot.send_message(message.chat.id, "- Обучение в центре по выбранному кубу – бесплатное по сертификату дополнительного образования детей;\n- места в бюджетном образовании ограничены (не более 400 мест);\n- Как получить сертификат: на портале 33.pfdo.ru - инструкция;\nвозраст обучающихся от 7 до 18 лет")
-        bot.send_message(message.chat.id, "Мы предлагаем широкий спектр курсов, каждый из которых открывает новые горизонты и возможности:", reply_markup=reply)
+        bot.send_message(chat_id, "- Обучение в центре по выбранному кубу – бесплатное по сертификату дополнительного образования детей;\n- места в бюджетном образовании ограничены (не более 400 мест);\n- Как получить сертификат: на портале 33.pfdo.ru - инструкция;\nвозраст обучающихся от 7 до 18 лет")
+        bot.send_message_with_keyboard(chat_id, "Мы предлагаем широкий спектр курсов, каждый из которых открывает новые горизонты и возможности:", buttons=options, n_cols=1)
     
-    elif message.text == "Программирование роботов":
-        media = [
-            types.InputMediaPhoto(open("robot.jpg", "rb")),
-            types.InputMediaPhoto(open("robot2.jpg", "rb")),
-            types.InputMediaPhoto(open("day6.jpg", "rb"))
-        ]
-        bot.send_media_group(message.chat.id, media)
-        bot.send_message(message.chat.id, "Программирование роботов:\n\nРобототехника вводит учащихся в мир технологий, развивает навыки взаимодействия, самостоятельности при принятии решений, раскрывает их творческий потенциал.\nПрограмма «Программирование роботов» нацелена на изучение принципов программирования при помощи роботов, которых обучающиеся будут разрабатывать . Научаться создавать мобильных роботов и систем программирования на базе платформ Arduino и других. В ходе занимательного конструирования обучающиеся научатся ставить задачи и находить решения, получат базовые знания по программированию,  механике, электрике, проектированию ,на стыке которых находится современная робототехника.")
+    elif text == "Программирование роботов":
+        media = ["robot.jpg", "robot2.jpg", "day6.jpg"]
+        for photo in media:
+            bot.send_photo(chat_id, photo)
+        bot.send_message(chat_id, "Программирование роботов:\n\nРобототехника вводит учащихся в мир технологий, развивает навыки взаимодействия, самостоятельности при принятии решений, раскрывает их творческий потенциал.\nПрограмма «Программирование роботов» нацелена на изучение принципов программирования при помощи роботов, которых обучающиеся будут разрабатывать . Научаться создавать мобильных роботов и систем программирования на базе платформ Arduino и других. В ходе занимательного конструирования обучающиеся научатся ставить задачи и находить решения, получат базовые знания по программированию,  механике, электрике, проектированию ,на стыке которых находится современная робототехника.")
 
-    elif message.text == "Программирование на Python":
-        media = [
-            types.InputMediaPhoto(open("python.jpg", "rb")),
-            types.InputMediaPhoto(open("python2.jpg", "rb"))
-        ]
-        bot.send_media_group(message.chat.id, media)
-        bot.send_message(message.chat.id, "Программирование на Python:\n\nПростой и понятный синтаксис. 23 Команды легко читаются и напоминают обычную английскую речь. Например, чтобы прописать приветствие, используется строчка print (\"Hello\").\nВозможность создавать различные приложения. Дети могут создавать свои приложения от простого вывода «Hello World!» до разработки анимации и игр. \nРазвитие логических и алгоритмических навыков. В процессе изучения Python дети учатся планировать последовательности действий для решения задач, анализировать задачи и разбивать их на подзадачи, искать закономерности в данных, отлаживать код.")
+    elif text == "Программирование на Python":
+        media = ["python.jpg", "python2.jpg"]
+        for photo in media:
+             bot.send_photo(chat_id, photo)
+        bot.send_message(chat_id, "Программирование на Python:\n\nПростой и понятный синтаксис. 23 Команды легко читаются и напоминают обычную английскую речь. Например, чтобы прописать приветствие, используется строчка print (\"Hello\").\nВозможность создавать различные приложения. Дети могут создавать свои приложения от простого вывода «Hello World!» до разработки анимации и игр. \nРазвитие логических и алгоритмических навыков. В процессе изучения Python дети учатся планировать последовательности действий для решения задач, анализировать задачи и разбивать их на подзадачи, искать закономерности в данных, отлаживать код.")
 
-    elif message.text == "Мобильная разработка":
-        media = [
-            types.InputMediaPhoto(open("rek.jpg", "rb")),
-            types.InputMediaPhoto(open("rek2.jpg", "rb"))
-        ]
-        bot.send_media_group(message.chat.id, media)
-        bot.send_message(message.chat.id, "Мобильная разработка:\n\nМир мобильной разработки представлен двумя основными операционными системами и технологиями на их базе: Android и iOS. С большим отрывом превалирует Android.\nДля Мобильной Разроботки используют mit app inventor Работа в ней не требует знания языка программирования Java и Android SDK, достаточно знания элементарных основ алгоритмизации. \nВ данном курсе рассматривается разработка Андроид-приложений, и является ""не одной строчки"" кода платформой, потому что можно создать мобильное приложение, не запрограммировав ни строчки.")
+    elif text == "Мобильная разработка":
+        media = ["rek.jpg", "rek2.jpg"]
+        for photo in media:
+             bot.send_photo(chat_id, photo)
+        bot.send_message(chat_id, "Мобильная разработка:\n\nМир мобильной разработки представлен двумя основными операционными системами и технологиями на их базе: Android и iOS. С большим отрывом превалирует Android.\nДля Мобильной Разроботки используют mit app inventor Работа в ней не требует знания языка программирования Java и Android SDK, достаточно знания элементарных основ алгоритмизации. \nВ данном курсе рассматривается разработка Андроид-приложений, и является ""не одной строчки"" кода платформой, потому что можно создать мобильное приложение, не запрограммировав ни строчки.")
 
-    elif message.text == "Программирование на Java":
-        media = [
-            types.InputMediaPhoto(open("day4.jpg", "rb")),
-            types.InputMediaPhoto(open("day5.jpg", "rb"))
-        ]
-        bot.send_media_group(message.chat.id, media)
-        bot.send_message(message.chat.id, "Программирование на Java:\n\nАктуальность программы обусловлена заказом общества на грамотных специалистов в области программирования,эффективностью развития навыков со школьного возраста; передачей сложного технического материала в простой доступной форме; реализацией проектной деятельности учащимися на базе современного оборудования.\n\nОсновное внимание на занятиях по программе уделяется общим вопросам построения алгоритмов, навыкам программирования на языке Java, использованию совместно с Java других языков программирования и технологий (JavaScript, CSS и др.), мобильной разработке под ОС Android.")
+    elif text == "Программирование на Java":
+        media = ["day4.jpg", "day5.jpg"]
+        for photo in media:
+             bot.send_photo(chat_id, photo)
+        bot.send_message(chat_id, "Программирование на Java:\n\nАктуальность программы обусловлена заказом общества на грамотных специалистов в области программирования,эффективностью развития навыков со школьного возраста; передачей сложного технического материала в простой доступной форме; реализацией проектной деятельности учащимися на базе современного оборудования.\n\nОсновное внимание на занятиях по программе уделяется общим вопросам построения алгоритмов, навыкам программирования на языке Java, использованию совместно с Java других языков программирования и технологий (JavaScript, CSS и др.), мобильной разработке под ОС Android.")
 
-    elif message.text == "Системное администрирование":
-        media = [
-            types.InputMediaPhoto(open("day2.jpg", "rb")),
-            types.InputMediaPhoto(open("sis.jpg", "rb")),
-        ]
-        bot.send_media_group(message.chat.id, media)
-        bot.send_message(message.chat.id, "Системное администрирование:\n\nВ обязанности системного администратора входит установка и настройка программного обеспечения, поддержка работы компьютеров и оргтехники, умение разрабатывать и управлять компьютерными сетями.\n\nДанная программа способствует формированию изобретательского мышления, расширяет и дополняет базовые знания,проявить и реализовать свой творческий потенциал, что делает программу актуальной и востребованной.")
+    elif text == "Системное администрирование":
+        media = ["day2.jpg", "sis.jpg"]
+        for photo in media:
+             bot.send_photo(chat_id, photo)
+        bot.send_message(chat_id, "Системное администрирование:\n\nВ обязанности системного администратора входит установка и настройка программного обеспечения, поддержка работы компьютеров и оргтехники, умение разрабатывать и управлять компьютерными сетями.\n\nДанная программа способствует формированию изобретательского мышления, расширяет и дополняет базовые знания,проявить и реализовать свой творческий потенциал, что делает программу актуальной и востребованной.")
 
-    elif message.text == "Алгоритмика и логика":
-        media = [
-            types.InputMediaPhoto(open("rek3.jpg", "rb")),
-            types.InputMediaPhoto(open("rek4.jpg", "rb"))
-        ]
-        bot.send_media_group(message.chat.id, media)
-        bot.send_message(message.chat.id, "Алгоритмика и логика:\n\nОсновная цель-подготовить Вас к любой задаче, научить применять полученные знания на практике, заинтересовать в учебе. Курс научит инструментам и практикам программирования, вы сможете создавать свои проекты: мультфильмы, игры.\nВы учитесь работать по инструкции, считаться с итоговыми требованиями, признавать и исправлять собственные ошибки, представлять и оценивать готовые проекты, а также десяткам другим важнейшим уникальным умениям и способам действия.")
+    elif text == "Алгоритмика и логика":
+        media = ["rek3.jpg", "rek4.jpg"]
+        for photo in media:
+             bot.send_photo(chat_id, photo)
+        bot.send_message(chat_id, "Алгоритмика и логика:\n\nОсновная цель-подготовить Вас к любой задаче, научить применять полученные знания на практике, заинтересовать в учебе. Курс научит инструментам и практикам программирования, вы сможете создавать свои проекты: мультфильмы, игры.\nВы учитесь работать по инструкции, считаться с итоговыми требованиями, признавать и исправлять собственные ошибки, представлять и оценивать готовые проекты, а также десяткам другим важнейшим уникальным умениям и способам действия.")
     
-    elif message.text == "<Меню>":
-        media = [
-            types.InputMediaPhoto(open("sisal.jpg", "rb")),
-            types.InputMediaPhoto(open("sisal2.jpg", "rb")),
-            types.InputMediaPhoto(open("sisal3.jpg", "rb")),
-            types.InputMediaPhoto(open("sisal4.jpg", "rb")),
+    elif text == "<Меню>":
+        media = ["sisal.jpg", "sisal2.jpg", "sisal3.jpg", "sisal4.jpg"]
+        for photo in media:
+             bot.send_photo(chat_id, photo)
+        inline_buttons = [
+            {"text": "Новости", "callback_data": "ol"},
+            {"text": "Мероприятия", "callback_data": "ol2"},
+            {"text": "Контакты", "callback_data": "ol3"},
+            {"text": "Условия поступления", "callback_data": "ol4"}
         ]
-        reply = types.InlineKeyboardMarkup()
-        reply.add(types.InlineKeyboardButton("Новости", callback_data="ol"))
-        reply.add(types.InlineKeyboardButton("Мероприятия", callback_data="ol2"))
-        reply.add(types.InlineKeyboardButton("Контакты", callback_data="ol3"))
-        reply.add(types.InlineKeyboardButton("Условия поступления", callback_data="ol4"))
-        bot.send_media_group(message.chat.id, media)
-        bot.send_message(message.chat.id, "Меню:", reply_markup=reply)
-    reply2 = types.ReplyKeyboardMarkup()
-    options = [
+        def response_function(data: str, chat_id: int, update: Dict) -> None:
+           
+            if data == "ol":
+              news_list = get_news_from_site()
+              if not news_list:
+                  bot.send_message(chat_id, "Не удалось получить новости.")
+                  return
+  
+              keyboard_buttons = [news_item['title'] for news_item in news_list if news_item['title'] != "Читать полностью"]
+              keyboard_buttons.append("<Меню>")
+              bot.send_message_with_keyboard(chat_id, "Выберите новость:", buttons=keyboard_buttons, n_cols = 1)
+            elif data == "ol2":
+                events = get_events()
+                if events:
+                  keyboard_buttons = [event['title'] for event in events if event['title'] != "Мероприятия"]
+                  keyboard_buttons.append("<Меню>")
+                  bot.send_message_with_keyboard(chat_id, "Выберите событие:", buttons=keyboard_buttons, n_cols=1)
+                else:
+                  bot.send_message(chat_id, "Не удалось загрузить события.")
+            elif data == "ol3":
+                bot.send_message(chat_id, "Контакты:\n\ne-mail: it-cub@vztec.ru\nТелефон: 8(49233)3-09-93")
+            elif data == "ol4":
+                bot.send_message(chat_id, "- Обучение в центре по выбранному кубу – бесплатное по сертификату дополнительного образования детей;\n- места в бюджетном образовании ограничены (не более 400 мест);\n- Как получить сертификат: на портале 33.pfdo.ru - инструкция;\nвозраст обучающихся от 7 до 18 лет")
+        bot.wait_for_response_and_respond(chat_id, "Меню:", response_function=response_function)
+        bot.send_message_with_inline_keyboard(chat_id, "Меню:", buttons=inline_buttons)
+    
+    
+    news_list = get_news_from_site()
+    if not news_list:
+        bot.send_message(chat_id, "Не удалось получить новости.")
+        return
+    
+    for news_item in news_list:
+         if text == news_item['title']:
+             description = get_news_description(news_item['link'])
+             options = [
             "Программирование роботов",
             "Программирование на Python",
             "Программирование на Java",
@@ -201,66 +220,35 @@ def text(message):
             "Алгоритмика и логика",
             "Системное администрирование",
         ]
-    options.sort()
-    options.append("<Меню>")
-    for option in options:
-        reply2.add(option)
-    news_list = get_news_from_site()
-    if not news_list:
-        bot.reply_to(message, "Не удалось получить новости.")
-        return
+             options.sort()
+             options.append("<Меню>")
+             bot.send_message_with_keyboard(chat_id, f"Дополнительная информация по ссылке: {news_item['link']}\n\nОписание:\n{description}", buttons=options, n_cols=1)
+             return
     
-    for news_item in news_list:
-        if message.text == news_item['title']:
-            description = get_news_description(news_item['link'])
-            bot.reply_to(message, f"Дополнительная информация по ссылке: {news_item['link']}\n\nОписание:\n{description}", reply_markup=reply2)
-            return
     events = get_events()
     if events:
         for event in events:
-            if message.text == event['title']:
+            if text == event['title']:
                 description = get_event_description(event['link'])
                 if description:
-                    bot.reply_to(message, f"Дополнительная информация по ссылке: {event['link']} \n\nОписание:{description}", reply_markup=reply2)
+                    options = [
+            "Программирование роботов",
+            "Программирование на Python",
+            "Программирование на Java",
+            "Мобильная разработка",
+            "Алгоритмика и логика",
+            "Системное администрирование",
+        ]
+                    options.sort()
+                    options.append("<Меню>")
+                    bot.send_message_with_keyboard(chat_id, f"Дополнительная информация по ссылке: {event['link']} \n\nОписание:{description}", buttons=options, n_cols=1)
                 else:
-                    bot.reply_to(message, "Описание не найдено.")
+                    bot.send_message(chat_id, "Описание не найдено.")
                 return
     else:
-        bot.reply_to(message, "Не удалось загрузить события.")
-    
+        bot.send_message(chat_id, "Не удалось загрузить события.")
 
-@bot.callback_query_handler(func=lambda call: True)
-def callback_inline(call):
-    if call.data == "ol":
-        news_list = get_news_from_site()
-        if not news_list:
-            bot.reply_to(call.message, "Не удалось получить новости.")
-            return
 
-        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
-        for news_item in news_list:
-            if news_item['title'] != "Читать полностью": 
-                keyboard.add(telebot.types.KeyboardButton(news_item['title']))
-
-        keyboard.add(telebot.types.KeyboardButton("<Меню>"))
-
-        bot.reply_to(call.message, "Выберите новость:", reply_markup=keyboard)
-    if call.data == "ol2":
-        events = get_events()
-        if events:
-            keyboard2 = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
-            for event in events:
-                if event['title'] != "Мероприятия": 
-                    keyboard2.add(telebot.types.KeyboardButton(event['title']))
-
-            keyboard2.add(telebot.types.KeyboardButton("<Меню>"))
-
-            bot.reply_to(call.message, "Выберите событие:", reply_markup=keyboard2)
-        else:
-            bot.reply_to(call.message, "Не удалось загрузить события.")
-    elif call.data == "ol3":
-        bot.send_message(call.message.chat.id, "Контакты:\n\ne-mail: it-cub@vztec.ru\nТелефон: 8(49233)3-09-93")
-    elif call.data == "ol4":
-        bot.send_message(call.message.chat.id, "- Обучение в центре по выбранному кубу – бесплатное по сертификату дополнительного образования детей;\n- места в бюджетном образовании ограничены (не более 400 мест);\n- Как получить сертификат: на портале 33.pfdo.ru - инструкция;\nвозраст обучающихся от 7 до 18 лет")
-
-bot.infinity_polling()
+if __name__ == '__main__':
+    print("Bot run")
+    bot.run()
